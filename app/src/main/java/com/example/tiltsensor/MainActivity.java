@@ -14,10 +14,10 @@ import android.widget.TextView;
 
 public class MainActivity extends AppCompatActivity implements SensorEventListener {
 
+    // inisialisasi variable
     private SensorManager mSensorManager;
     private Sensor mSensorMagnetometer;
     private Sensor mSensorAccelerometer;
-
 
     private TextView mTextSensorAzimuth;
     private TextView mTextSensorRoll;
@@ -33,22 +33,26 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private ImageView mSpotRight;
     private ImageView mSpotLeft;
 
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // melock orientasi app android menjadi potrait
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
 
+        // mendapatkan refrence textview
         mTextSensorAzimuth = findViewById(R.id.value_azimuth);
         mTextSensorPitch = findViewById(R.id.value_pitch);
         mTextSensorRoll = findViewById(R.id.value_roll);
 
+
+        // mendapatkan refrence sensor manager dan sensor yang tersedia dalam device
         mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         mSensorAccelerometer = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         mSensorMagnetometer = mSensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
 
+        // mendapatkan refrence imageview
         mSpotTop = findViewById(R.id.spot_top);
         mSpotBottom = findViewById(R.id.spot_bottom);
         mSpotRight = findViewById(R.id.spot_right);
@@ -57,9 +61,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     @Override
+    // saat app dibuka
     protected void onStart() {
         super.onStart();
         if (mSensorAccelerometer != null) {
+            // menambahkan listener accelerometer ke sensormanager apabila ada
             mSensorManager.registerListener(this, mSensorAccelerometer,
                     SensorManager.SENSOR_DELAY_NORMAL);
         }
@@ -67,6 +73,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             System.out.println("No Accelerometer Sensor");
         }
         if (mSensorMagnetometer != null) {
+            // menambahkan listener magnetometer ke sensormanager apabila ada
             mSensorManager.registerListener(this, mSensorMagnetometer,
                     SensorManager.SENSOR_DELAY_NORMAL);
         }
@@ -77,14 +84,19 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     protected void onStop() {
         super.onStop();
+        // unregister listener yang diregister ke sensormanager sebelumnya
         mSensorManager.unregisterListener(this);
     }
 
     @Override
+    // ketika sensor berubah
     public void onSensorChanged(SensorEvent sensorEvent) {
+        // dapatkan jenis sensor
         int sensorType = sensorEvent.sensor.getType();
+        // membandingkan jenis sensor
         switch (sensorType) {
             case Sensor.TYPE_ACCELEROMETER:
+                // menduplicate nilai sensorEvent
                 mAccelerometerData = sensorEvent.values.clone();
                 break;
             case Sensor.TYPE_MAGNETIC_FIELD:
@@ -95,24 +107,31 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         }
 
+        // membuat sebuah array kosong untuk menampung nilai
         float[] rotationMatrix = new float[9];
+        // nantinya hasil akan dihitung dengan accelerometer menghitung gravitasi dan mmagnometer menghitung geomagnetic
+        // mengubah vektor dari device coordinate system ke world coordinate system
         boolean rotationOK = SensorManager.getRotationMatrix(rotationMatrix, null,
                 mAccelerometerData, mMagnometerData);
 
+        // tempat untuk menampung nilai azimuth, pitch dan roll
         float[] orientationValues = new float[3];
 
+        // set nilai array orientationvalues dari hitungan rotation matrix
         if (rotationOK) {
             SensorManager.getOrientation(rotationMatrix, orientationValues);
         }
 
-        float azimuth = orientationValues[0];
-        float pitch = orientationValues[1];
-        float roll = orientationValues[2];
+        float azimuth = orientationValues[0]; // rotasi sumbu z
+        float pitch = orientationValues[1]; // rotasi sumbu x
+        float roll = orientationValues[2]; // rotasi sumbu y
 
+        // set value
         mTextSensorRoll.setText(getResources().getString(R.string.value_format, roll));
         mTextSensorPitch.setText(getResources().getString(R.string.value_format, pitch));
         mTextSensorAzimuth.setText(getResources().getString(R.string.value_format, azimuth));
 
+        // apabila kurang dari drift value
         if (Math.abs(pitch) < VALUE_DRIFT) {
             pitch = 0;
         }
@@ -120,11 +139,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             roll = 0;
         }
 
+        // set visibility ke 0 ketika hp diam
         mSpotTop.setAlpha(0f);
         mSpotRight.setAlpha(0f);
         mSpotLeft.setAlpha(0f);
         mSpotBottom.setAlpha(0f);
 
+        // ubah value
         if (pitch > 0) {
             mSpotBottom.setAlpha(pitch);
         }
